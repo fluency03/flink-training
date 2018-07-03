@@ -28,29 +28,29 @@ import static org.junit.Assert.assertEquals;
 
 public abstract class RideCleansingTest extends TaxiRideTestBase<TaxiRide> {
 
-	static Testable javaExercise = () -> RideCleansingExercise.main(new String[]{});
+    static Testable javaExercise = () -> RideCleansingExercise.main(new String[]{});
 
-	@Test
-	public void testCleansingFilter() throws Exception {
+    @Test
+    public void testCleansingFilter() throws Exception {
 
-		TaxiRide atPennStation = testRide(-73.9947F, 40.750626F, -73.9947F, 40.750626F);
-		TaxiRide toThePole = testRide(-73.9947F, 40.750626F, 0, 90);
-		TaxiRide fromThePole = testRide(0, 90, -73.9947F, 40.750626F);
-		TaxiRide atNorthPole = testRide(0, 90, 0, 90);
+        TaxiRide atPennStation = testRide(-73.9947F, 40.750626F, -73.9947F, 40.750626F);
+        TaxiRide toThePole = testRide(-73.9947F, 40.750626F, 0, 90);
+        TaxiRide fromThePole = testRide(0, 90, -73.9947F, 40.750626F);
+        TaxiRide atNorthPole = testRide(0, 90, 0, 90);
 
-		TestRideSource source = new TestRideSource(atPennStation, toThePole, fromThePole, atNorthPole);
+        TestRideSource source = new TestRideSource(atPennStation, toThePole, fromThePole, atNorthPole);
 
-		assertEquals(Lists.newArrayList(atPennStation), results(source));
-	}
+        assertEquals(Lists.newArrayList(atPennStation), results(source));
+    }
 
-	private TaxiRide testRide(float startLon, float startLat, float endLon, float endLat) {
-		return new TaxiRide(1L, true, new DateTime(0), new DateTime(0),
-				startLon, startLat, endLon, endLat, (short)1, 0, 0);
-	}
+    private TaxiRide testRide(float startLon, float startLat, float endLon, float endLat) {
+        return new TaxiRide(1L, true, new DateTime(0), new DateTime(0),
+                startLon, startLat, endLon, endLat, (short)1, 0, 0);
+    }
 
-	protected List<?> results(TestRideSource source) throws Exception {
-		Testable javaSolution = () -> com.dataartisans.flinktraining.solutions.datastream_java.basics.RideCleansingSolution.main(new String[]{});
-		return runApp(source, new TestSink<>(), javaExercise, javaSolution);
-	}
+    protected List<?> results(TestRideSource source) throws Exception {
+        Testable javaSolution = () -> com.dataartisans.flinktraining.solutions.datastream_java.basics.RideCleansingSolution.main(new String[]{});
+        return runApp(source, new TestSink<>(), javaExercise, javaSolution);
+    }
 
 }

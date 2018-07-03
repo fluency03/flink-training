@@ -16,6 +16,7 @@
 
 package com.dataartisans.flinktraining.exercises.datastream_scala.basics
 
+import com.dataartisans.flinktraining.exercises.datastream_java.datatypes.TaxiRide
 import com.dataartisans.flinktraining.exercises.datastream_java.sources.TaxiRideSource
 import com.dataartisans.flinktraining.exercises.datastream_java.utils.ExerciseBase._
 import com.dataartisans.flinktraining.exercises.datastream_java.utils.{ExerciseBase, GeoUtils, MissingSolutionException}
@@ -52,9 +53,11 @@ object RideCleansingExercise extends ExerciseBase {
     // get the taxi ride data stream
     val rides = env.addSource(rideSourceOrTest(new TaxiRideSource(input, maxDelay, speed)))
 
+//    val isInNYC = (ride: TaxiRide) => GeoUtils.isInNYC(ride.endLon, ride.endLat) && GeoUtils.isInNYC(ride.startLon, ride.startLat)
+
     val filteredRides = rides
       // filter out rides that do not start and end in NYC
-      .filter(ride => throw new MissingSolutionException)
+      .filter(ride => GeoUtils.isInNYC(ride.endLon, ride.endLat) && GeoUtils.isInNYC(ride.startLon, ride.startLat))
 
     // print the filtered stream
     printOrTest(filteredRides)
