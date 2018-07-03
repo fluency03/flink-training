@@ -22,6 +22,7 @@ import com.dataartisans.flinktraining.exercises.datastream_java.utils.{ExerciseB
 import com.dataartisans.flinktraining.exercises.datastream_java.utils.ExerciseBase._
 import org.apache.flink.api.common.state.{ValueState, ValueStateDescriptor}
 import org.apache.flink.api.java.utils.ParameterTool
+import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
 import org.apache.flink.streaming.api.scala._
@@ -73,24 +74,57 @@ object ExpiringStateExercise {
     env.execute("ExpiringState (scala)")
   }
 
+  case class CountWithTimestamp(count: Long, lastModified: Long)
+
   class EnrichmentFunction extends CoProcessFunction[TaxiRide, TaxiFare, (TaxiRide, TaxiFare)] {
+
+    val fareDescriptor = new ValueStateDescriptor[TaxiFare]("TaxiFare", createTypeInformation[TaxiFare])
+    val rideDescriptor = new ValueStateDescriptor[TaxiRide]("TaxiRide", createTypeInformation[TaxiRide])
+
+    lazy val rideState: ValueState[TaxiRide] = getRuntimeContext.getState(rideDescriptor)
+    lazy val fareState: ValueState[TaxiFare] = getRuntimeContext.getState(fareDescriptor)
+
+
 
     override def processElement1(ride: TaxiRide,
                                  context: CoProcessFunction[TaxiRide, TaxiFare, (TaxiRide, TaxiFare)]#Context,
                                  out: Collector[(TaxiRide, TaxiFare)]): Unit = {
-
-      throw new MissingSolutionException();
+      fareState.value match {
+        case null =>
+          rideState.update(ride)
+          context.timerService.registerEventTimeTimer(ride.getEventTime)
+        case f =>
+          fareState.clear()
+          out.collect(ride, f)
+      }
     }
 
     override def processElement2(fare: TaxiFare,
                                  context: CoProcessFunction[TaxiRide, TaxiFare, (TaxiRide, TaxiFare)]#Context,
                                  out: Collector[(TaxiRide, TaxiFare)]): Unit = {
+      rideState.value match {
+        case null =>
+          fareState.update(fare)
+          context.timerService.registerEventTimeTimer(fare.getEventTime)
+        case r =>
+          rideState.clear()
+          out.collect(r, fare)
+      }
     }
 
     override def onTimer(timestamp: Long,
                          ctx: CoProcessFunction[TaxiRide, TaxiFare, (TaxiRide, TaxiFare)]#OnTimerContext,
                          out: Collector[(TaxiRide, TaxiFare)]): Unit = {
+      if (fareState.value != null) {
+        ctx.output(unmatchedFares, fareState.value)
+        fareState.clear()
+      }
+      if (rideState.value != null) {
+        ctx.output(unmatchedRides, rideState.value)
+        rideState.clear()
+      }
     }
+
   }
 
 }

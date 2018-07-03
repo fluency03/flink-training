@@ -21,11 +21,11 @@ import java.util.List;
 
 public class ExpiringStateScalaTest extends ExpiringStateTest {
 
-	static Testable scalaExercise = () -> ExpiringStateExercise.main(new String[]{});
+    static Testable scalaExercise = () -> ExpiringStateExercise.main(new String[]{});
 
-	protected List<?> results(TestRideSource rides, TestFareSource fares) throws Exception {
-		Testable scalaSolution = () -> com.dataartisans.flinktraining.solutions.datastream_scala.process.ExpiringStateSolution.main(new String[]{});
-		return runApp(rides, fares, new TestSink<>(), scalaExercise, scalaSolution);
-	}
+    protected List<?> results(TestRideSource rides, TestFareSource fares) throws Exception {
+        Testable scalaSolution = () -> com.dataartisans.flinktraining.solutions.datastream_scala.process.ExpiringStateSolution.main(new String[]{});
+        return runApp(rides, fares, new TestSink<>(), scalaExercise, scalaSolution);
+    }
 
 }

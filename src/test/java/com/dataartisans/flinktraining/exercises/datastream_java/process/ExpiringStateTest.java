@@ -31,48 +31,48 @@ import static org.junit.Assert.assertEquals;
 
 public class ExpiringStateTest extends TaxiRideTestBase<TaxiFare> {
 
-	static Testable javaExercise = () -> ExpiringStateExercise.main(new String[]{});
+    static Testable javaExercise = () -> ExpiringStateExercise.main(new String[]{});
 
-	final TaxiRide ride1 = testRide(1);
-	final TaxiFare fare1 = testFare(1);
-	final TaxiFare fare2 = testFare(2);
+    final TaxiRide ride1 = testRide(1);
+    final TaxiFare fare1 = testFare(1);
+    final TaxiFare fare2 = testFare(2);
 
-	@Test
-	public void testFareIsUnmatched() throws Exception {
-		TestRideSource rides = new TestRideSource(ride1);
-		TestFareSource fares = new TestFareSource(fare1, fare2);
+    @Test
+    public void testFareIsUnmatched() throws Exception {
+        TestRideSource rides = new TestRideSource(ride1);
+        TestFareSource fares = new TestFareSource(fare1, fare2);
 
-		ArrayList<TaxiFare> unmatched = Lists.newArrayList(
-					fare2
-				);
+        ArrayList<TaxiFare> unmatched = Lists.newArrayList(
+                    fare2
+                );
 
-		assertEquals(unmatched, results(rides, fares));
-	}
+        assertEquals(unmatched, results(rides, fares));
+    }
 
-	@Test
-	public void testOrderDoesNotMatter() throws Exception {
-		TestRideSource rides = new TestRideSource(ride1);
-		TestFareSource fares = new TestFareSource(fare2, fare1);
+    @Test
+    public void testOrderDoesNotMatter() throws Exception {
+        TestRideSource rides = new TestRideSource(ride1);
+        TestFareSource fares = new TestFareSource(fare2, fare1);
 
-		ArrayList<TaxiFare> unmatched = Lists.newArrayList(
-				fare2
-		);
+        ArrayList<TaxiFare> unmatched = Lists.newArrayList(
+                fare2
+        );
 
-		assertEquals(unmatched, results(rides, fares));
-	}
+        assertEquals(unmatched, results(rides, fares));
+    }
 
-	private TaxiRide testRide(long rideId) {
-		return new TaxiRide(rideId, true, new DateTime(0), new DateTime(0),
-				0F, 0F, 0F, 0F, (short)1, 0, rideId);
-	}
+    private TaxiRide testRide(long rideId) {
+        return new TaxiRide(rideId, true, new DateTime(0), new DateTime(0),
+                0F, 0F, 0F, 0F, (short)1, 0, rideId);
+    }
 
-	private TaxiFare testFare(long rideId) {
-		return new TaxiFare(rideId, 0, rideId, new DateTime(0), "", 0F, 0F, 0F);
-	}
+    private TaxiFare testFare(long rideId) {
+        return new TaxiFare(rideId, 0, rideId, new DateTime(0), "", 0F, 0F, 0F);
+    }
 
-	protected List<?> results(TestRideSource rides, TestFareSource fares) throws Exception {
-		Testable javaSolution = () -> ExpiringStateSolution.main(new String[]{});
-		return runApp(rides, fares, new TestSink<>(), javaExercise, javaSolution);
-	}
+    protected List<?> results(TestRideSource rides, TestFareSource fares) throws Exception {
+        Testable javaSolution = () -> ExpiringStateSolution.main(new String[]{});
+        return runApp(rides, fares, new TestSink<>(), javaExercise, javaSolution);
+    }
 
 }
