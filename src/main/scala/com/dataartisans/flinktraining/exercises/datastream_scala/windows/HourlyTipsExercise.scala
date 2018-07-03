@@ -16,12 +16,20 @@
 
 package com.dataartisans.flinktraining.exercises.datastream_scala.windows
 
+import com.dataartisans.flinktraining.exercises.datastream_java.datatypes.TaxiFare
 import com.dataartisans.flinktraining.exercises.datastream_java.sources.TaxiFareSource
 import com.dataartisans.flinktraining.exercises.datastream_java.utils.{ExerciseBase, MissingSolutionException}
 import com.dataartisans.flinktraining.exercises.datastream_java.utils.ExerciseBase._
+import org.apache.flink.api.common.functions.ReduceFunction
+import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.utils.ParameterTool
 import org.apache.flink.streaming.api.TimeCharacteristic
 import org.apache.flink.streaming.api.scala._
+import org.apache.flink.streaming.api.scala.function.WindowFunction
+import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows
+import org.apache.flink.streaming.api.windowing.time.Time
+import org.apache.flink.streaming.api.windowing.windows.TimeWindow
+import org.apache.flink.util.Collector
 
 /**
   * The "Hourly Tips" exercise of the Flink training
@@ -38,6 +46,9 @@ object HourlyTipsExercise {
 
   def main(args: Array[String]) {
 
+//    val tuple2Info: TypeInformation[(Long, Float)] = createTypeInformation[(Long, Float)]
+//    val tuple3Info: TypeInformation[(Long, Long, Float)] = createTypeInformation[(Long, Long, Float)]
+
     // read parameters
     val params = ParameterTool.fromArgs(args)
     val input = params.get("input", ExerciseBase.pathToFareData)
@@ -53,10 +64,29 @@ object HourlyTipsExercise {
     // start the data generator
     val fares = env.addSource(fareSourceOrTest(new TaxiFareSource(input, maxDelay, speed)))
 
-    throw new MissingSolutionException()
+    val reduceFunc = (t1: (Long, Float), t2: (Long, Float)) => (t1._1, t1._2 + t2._2)
+    val windowFunc =
+      ( key: Long,
+        window: TimeWindow,
+        tuples: Iterable[(Long, Float)],
+        out: Collector[(Long, Long, Float)]) =>
+      {
+        val t = tuples.iterator.next()
+        out.collect((window.getEnd, t._1, t._2))
+      }
+
+    val tipsSum = fares
+      .map(f => (f.driverId, f.tip))
+      .keyBy(_._1)
+      .timeWindow(Time.hours(1))
+      .reduce(reduceFunc, windowFunc)
+
+    val hourlyMax = tipsSum
+      .timeWindowAll(Time.hours(1))
+      .maxBy(2)
 
    // print result on stdout
-//    printOrTest(hourlyMax)
+    printOrTest(hourlyMax)
 
     // execute the transformation pipeline
     env.execute("Hourly Tips (scala)")

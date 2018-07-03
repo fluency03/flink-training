@@ -32,50 +32,50 @@ import static org.junit.Assert.assertEquals;
 
 public class RidesAndFaresTest extends TaxiRideTestBase<Tuple2<TaxiRide, TaxiFare>> {
 
-	static Testable javaExercise = () -> RidesAndFaresExercise.main(new String[]{});
+    static Testable javaExercise = () -> RidesAndFaresExercise.main(new String[]{});
 
 
-	final TaxiRide ride1 = testRide(1);
-	final TaxiRide ride2 = testRide(2);
-	final TaxiFare fare1 = testFare(1);
-	final TaxiFare fare2 = testFare(2);
+    final TaxiRide ride1 = testRide(1);
+    final TaxiRide ride2 = testRide(2);
+    final TaxiFare fare1 = testFare(1);
+    final TaxiFare fare2 = testFare(2);
 
-	@Test
-	public void testInOrder() throws Exception {
-		TestRideSource rides = new TestRideSource(ride1, ride2);
-		TestFareSource fares = new TestFareSource(fare1, fare2);
+    @Test
+    public void testInOrder() throws Exception {
+        TestRideSource rides = new TestRideSource(ride1, ride2);
+        TestFareSource fares = new TestFareSource(fare1, fare2);
 
-		ArrayList<Tuple2<TaxiRide, TaxiFare>> expected = Lists.newArrayList(
-				new Tuple2<>(ride1, fare1),
-				new Tuple2<>(ride2, fare2));
+        ArrayList<Tuple2<TaxiRide, TaxiFare>> expected = Lists.newArrayList(
+                new Tuple2<>(ride1, fare1),
+                new Tuple2<>(ride2, fare2));
 
-		assertEquals(expected, results(rides, fares));
-	}
+        assertEquals(expected, results(rides, fares));
+    }
 
-	@Test
-	public void testOutOfOrder() throws Exception {
-		TestRideSource rides = new TestRideSource(ride1, ride2);
-		TestFareSource fares = new TestFareSource(fare2, fare1);
+    @Test
+    public void testOutOfOrder() throws Exception {
+        TestRideSource rides = new TestRideSource(ride1, ride2);
+        TestFareSource fares = new TestFareSource(fare2, fare1);
 
-		ArrayList<Tuple2<TaxiRide, TaxiFare>> expected = Lists.newArrayList(
-				new Tuple2<>(ride1, fare1),
-				new Tuple2<>(ride2, fare2));
+        ArrayList<Tuple2<TaxiRide, TaxiFare>> expected = Lists.newArrayList(
+                new Tuple2<>(ride1, fare1),
+                new Tuple2<>(ride2, fare2));
 
-		assertEquals(expected, results(rides, fares));
-	}
+        assertEquals(expected, results(rides, fares));
+    }
 
-	private TaxiRide testRide(long rideId) {
-		return new TaxiRide(rideId, true, new DateTime(0), new DateTime(0),
-				0F, 0F, 0F, 0F, (short)1, 0, rideId);
-	}
+    private TaxiRide testRide(long rideId) {
+        return new TaxiRide(rideId, true, new DateTime(0), new DateTime(0),
+                0F, 0F, 0F, 0F, (short)1, 0, rideId);
+    }
 
-	private TaxiFare testFare(long rideId) {
-		return new TaxiFare(rideId, 0, rideId, new DateTime(0), "", 0F, 0F, 0F);
-	}
+    private TaxiFare testFare(long rideId) {
+        return new TaxiFare(rideId, 0, rideId, new DateTime(0), "", 0F, 0F, 0F);
+    }
 
-	protected List<?> results(TestRideSource rides, TestFareSource fares) throws Exception {
-		Testable javaSolution = () -> RidesAndFaresSolution.main(new String[]{});
-		return runApp(rides, fares, new TestSink<>(), javaExercise, javaSolution);
-	}
+    protected List<?> results(TestRideSource rides, TestFareSource fares) throws Exception {
+        Testable javaSolution = () -> RidesAndFaresSolution.main(new String[]{});
+        return runApp(rides, fares, new TestSink<>(), javaExercise, javaSolution);
+    }
 
 }

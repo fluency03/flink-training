@@ -98,24 +98,20 @@ object RidesAndFaresExercise {
 
   class EnrichmentFunction2 extends RichCoFlatMapFunction[TaxiRide, TaxiFare, (TaxiRide, TaxiFare)] {
 
-    var fareState: ValueState[TaxiFare] = _
-    var rideState: ValueState[TaxiRide] = _
     val fareDescriptor = new ValueStateDescriptor[TaxiFare]("TaxiFare", createTypeInformation[TaxiFare])
     val rideDescriptor = new ValueStateDescriptor[TaxiRide]("TaxiRide", createTypeInformation[TaxiRide])
 
-    override def open(parameters: Configuration): Unit = {
-      fareState = getRuntimeContext.getState(fareDescriptor)
-      rideState = getRuntimeContext.getState(rideDescriptor)
-    }
+    lazy val rideState: ValueState[TaxiRide] = getRuntimeContext.getState(rideDescriptor)
+    lazy val fareState: ValueState[TaxiFare] = getRuntimeContext.getState(fareDescriptor)
 
     override def flatMap1(ride: TaxiRide, out: Collector[(TaxiRide, TaxiFare)]): Unit = {
-      if (fareState.value() == null) rideState.update(ride)
-      else out.collect(ride, fareState.value())
+      if (fareState.value == null) rideState.update(ride)
+      else out.collect(ride, fareState.value)
     }
 
     override def flatMap2(fare: TaxiFare, out: Collector[(TaxiRide, TaxiFare)]): Unit = {
-      if (rideState.value() == null) fareState.update(fare)
-      else out.collect((rideState.value(), fare))
+      if (rideState.value == null) fareState.update(fare)
+      else out.collect((rideState.value, fare))
     }
 
   }
