@@ -41,8 +41,8 @@ import org.apache.flink.util.Collector
   *
   */
 object ExpiringStateExercise {
-  val unmatchedRides = new OutputTag[TaxiRide]("unmatchedRides") {}
-  val unmatchedFares = new OutputTag[TaxiFare]("unmatchedFares") {}
+  val unmatchedRides: OutputTag[TaxiRide] = new OutputTag[TaxiRide]("unmatchedRides") {}
+  val unmatchedFares: OutputTag[TaxiFare] = new OutputTag[TaxiFare]("unmatchedFares") {}
 
   def main(args: Array[String]) {
 
@@ -83,8 +83,6 @@ object ExpiringStateExercise {
 
     lazy val rideState: ValueState[TaxiRide] = getRuntimeContext.getState(rideDescriptor)
     lazy val fareState: ValueState[TaxiFare] = getRuntimeContext.getState(fareDescriptor)
-
-
 
     override def processElement1(ride: TaxiRide,
                                  context: CoProcessFunction[TaxiRide, TaxiFare, (TaxiRide, TaxiFare)]#Context,
