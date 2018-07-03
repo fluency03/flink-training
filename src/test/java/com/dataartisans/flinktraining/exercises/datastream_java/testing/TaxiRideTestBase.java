@@ -28,115 +28,115 @@ import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import java.util.*;
 
 public abstract class TaxiRideTestBase<OUT> {
-	public static class TestRideSource extends TestSource implements ResultTypeQueryable<TaxiRide> {
-		public TestRideSource(Object ... eventsOrWatermarks) {
-			this.testStream = eventsOrWatermarks;
-		}
+    public static class TestRideSource extends TestSource implements ResultTypeQueryable<TaxiRide> {
+        public TestRideSource(Object ... eventsOrWatermarks) {
+            this.testStream = eventsOrWatermarks;
+        }
 
-		@Override
-		public TypeInformation<TaxiRide> getProducedType() {
-			return TypeInformation.of(TaxiRide.class);
-		}
-	}
+        @Override
+        public TypeInformation<TaxiRide> getProducedType() {
+            return TypeInformation.of(TaxiRide.class);
+        }
+    }
 
-	public static class TestFareSource extends TestSource implements ResultTypeQueryable<TaxiFare> {
-		public TestFareSource(Object ... eventsOrWatermarks) {
-			this.testStream = eventsOrWatermarks;
-		}
+    public static class TestFareSource extends TestSource implements ResultTypeQueryable<TaxiFare> {
+        public TestFareSource(Object ... eventsOrWatermarks) {
+            this.testStream = eventsOrWatermarks;
+        }
 
-		@Override
-		public TypeInformation<TaxiFare> getProducedType() {
-			return TypeInformation.of(TaxiFare.class);
-		}
-	}
+        @Override
+        public TypeInformation<TaxiFare> getProducedType() {
+            return TypeInformation.of(TaxiFare.class);
+        }
+    }
 
-	public static class TestStringSource extends TestSource implements ResultTypeQueryable<String> {
-		public TestStringSource(Object ... eventsOrWatermarks) {
-			this.testStream = eventsOrWatermarks;
-		}
+    public static class TestStringSource extends TestSource implements ResultTypeQueryable<String> {
+        public TestStringSource(Object ... eventsOrWatermarks) {
+            this.testStream = eventsOrWatermarks;
+        }
 
-		@Override
-		public TypeInformation<String> getProducedType() {
-			return TypeInformation.of(String.class);
-		}
-	}
+        @Override
+        public TypeInformation<String> getProducedType() {
+            return TypeInformation.of(String.class);
+        }
+    }
 
-	public static class TestSink<OUT> implements SinkFunction<OUT> {
+    public static class TestSink<OUT> implements SinkFunction<OUT> {
 
-		// must be static
-		public static final List values = new ArrayList<>();
+        // must be static
+        public static final List values = new ArrayList<>();
 
-		@Override
-		public void invoke(OUT value, Context context) throws Exception {
-			values.add(value);
-		}
-	}
+        @Override
+        public void invoke(OUT value, Context context) throws Exception {
+            values.add(value);
+        }
+    }
 
-	public interface Testable {
-		public abstract void main() throws Exception;
-	}
+    public interface Testable {
+        public abstract void main() throws Exception;
+    }
 
-	protected List<OUT> runApp(TestRideSource source, TestSink<OUT> sink, Testable exercise, Testable solution) throws Exception {
-		ExerciseBase.rides = source;
+    protected List<OUT> runApp(TestRideSource source, TestSink<OUT> sink, Testable exercise, Testable solution) throws Exception {
+        ExerciseBase.rides = source;
 
-		return execute(sink, exercise, solution);
-	}
+        return execute(sink, exercise, solution);
+    }
 
-	protected List<OUT> runApp(TestFareSource source, TestSink<OUT> sink, Testable exercise, Testable solution) throws Exception {
-		ExerciseBase.fares = source;
+    protected List<OUT> runApp(TestFareSource source, TestSink<OUT> sink, Testable exercise, Testable solution) throws Exception {
+        ExerciseBase.fares = source;
 
-		return execute(sink, exercise, solution);
-	}
+        return execute(sink, exercise, solution);
+    }
 
-	protected List<OUT> runApp(TestRideSource rides, TestFareSource fares, TestSink<OUT> sink, Testable exercise, Testable solution) throws Exception {
-		ExerciseBase.rides = rides;
-		ExerciseBase.fares = fares;
+    protected List<OUT> runApp(TestRideSource rides, TestFareSource fares, TestSink<OUT> sink, Testable exercise, Testable solution) throws Exception {
+        ExerciseBase.rides = rides;
+        ExerciseBase.fares = fares;
 
-		return execute(sink, exercise, solution);
-	}
+        return execute(sink, exercise, solution);
+    }
 
-	protected List<OUT> runApp(TestRideSource rides, TestSink<OUT> sink, Testable solution) throws Exception {
-		ExerciseBase.rides = rides;
+    protected List<OUT> runApp(TestRideSource rides, TestSink<OUT> sink, Testable solution) throws Exception {
+        ExerciseBase.rides = rides;
 
-		return execute(sink, solution);
-	}
+        return execute(sink, solution);
+    }
 
-	protected List<OUT> runApp(TestRideSource rides, TestStringSource strings, TestSink<OUT> sink, Testable exercise, Testable solution) throws Exception {
-		ExerciseBase.rides = rides;
-		ExerciseBase.strings = strings;
+    protected List<OUT> runApp(TestRideSource rides, TestStringSource strings, TestSink<OUT> sink, Testable exercise, Testable solution) throws Exception {
+        ExerciseBase.rides = rides;
+        ExerciseBase.strings = strings;
 
-		return execute(sink, exercise, solution);
-	}
+        return execute(sink, exercise, solution);
+    }
 
-	private List<OUT> execute(TestSink<OUT> sink, Testable exercise, Testable solution) throws Exception {
-		sink.values.clear();
+    private List<OUT> execute(TestSink<OUT> sink, Testable exercise, Testable solution) throws Exception {
+        sink.values.clear();
 
-		ExerciseBase.out = sink;
-		ExerciseBase.parallelism = 1;
+        ExerciseBase.out = sink;
+        ExerciseBase.parallelism = 1;
 
-		try {
-			exercise.main();
-		} catch (JobExecutionException | MissingSolutionException e) {
-			if (e instanceof MissingSolutionException ||
-					(e.getCause() != null && e.getCause() instanceof MissingSolutionException)) {
-				sink.values.clear();
-				solution.main();
-			} else {
-				throw e;
-			}
-		}
+        try {
+            exercise.main();
+        } catch (JobExecutionException | MissingSolutionException e) {
+            if (e instanceof MissingSolutionException ||
+                    (e.getCause() != null && e.getCause() instanceof MissingSolutionException)) {
+                sink.values.clear();
+                solution.main();
+            } else {
+                throw e;
+            }
+        }
 
-		return sink.values;
-	}
+        return sink.values;
+    }
 
-	private List<OUT> execute(TestSink<OUT> sink, Testable solution) throws Exception {
-		sink.values.clear();
+    private List<OUT> execute(TestSink<OUT> sink, Testable solution) throws Exception {
+        sink.values.clear();
 
-		ExerciseBase.out = sink;
-		ExerciseBase.parallelism = 1;
+        ExerciseBase.out = sink;
+        ExerciseBase.parallelism = 1;
 
-		solution.main();
+        solution.main();
 
-		return sink.values;
-	}
+        return sink.values;
+    }
 }
