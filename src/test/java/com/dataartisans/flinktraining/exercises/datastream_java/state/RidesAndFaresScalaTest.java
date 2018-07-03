@@ -26,17 +26,17 @@ import java.util.List;
 
 public class RidesAndFaresScalaTest extends RidesAndFaresTest {
 
-	static Testable scalaExercise = () -> RidesAndFaresExercise.main(new String[]{});
+    static Testable scalaExercise = () -> RidesAndFaresExercise.main(new String[]{});
 
-	protected List<?> results(TestRideSource rides, TestFareSource fares) throws Exception {
-		Testable scalaSolution = () -> com.dataartisans.flinktraining.solutions.datastream_scala.state.RidesAndFaresSolution.main(new String[]{});
-		List<?> tuples = runApp(rides, fares, new TestSink<>(), scalaExercise, scalaSolution);
-		return javaTuples((ArrayList<scala.Tuple2<TaxiRide, TaxiFare>>) tuples);
-	}
+    protected List<?> results(TestRideSource rides, TestFareSource fares) throws Exception {
+        Testable scalaSolution = () -> com.dataartisans.flinktraining.solutions.datastream_scala.state.RidesAndFaresSolution.main(new String[]{});
+        List<?> tuples = runApp(rides, fares, new TestSink<>(), scalaExercise, scalaSolution);
+        return javaTuples((ArrayList<scala.Tuple2<TaxiRide, TaxiFare>>) tuples);
+    }
 
-	private ArrayList<Tuple2<TaxiRide, TaxiFare>> javaTuples(ArrayList<scala.Tuple2<TaxiRide, TaxiFare>> a) {
-		ArrayList<Tuple2<TaxiRide, TaxiFare>> javaCopy = new ArrayList<>(a.size());
-		a.iterator().forEachRemaining(t -> javaCopy.add(new Tuple2(t._1(), t._2())));
-		return javaCopy;
-	}
+    private ArrayList<Tuple2<TaxiRide, TaxiFare>> javaTuples(ArrayList<scala.Tuple2<TaxiRide, TaxiFare>> a) {
+        ArrayList<Tuple2<TaxiRide, TaxiFare>> javaCopy = new ArrayList<>(a.size());
+        a.iterator().forEachRemaining(t -> javaCopy.add(new Tuple2(t._1(), t._2())));
+        return javaCopy;
+    }
 }

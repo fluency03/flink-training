@@ -20,7 +20,7 @@ import com.dataartisans.flinktraining.exercises.datastream_java.datatypes.{TaxiF
 import com.dataartisans.flinktraining.exercises.datastream_java.sources.{TaxiFareSource, TaxiRideSource}
 import com.dataartisans.flinktraining.exercises.datastream_java.utils.{ExerciseBase, MissingSolutionException}
 import com.dataartisans.flinktraining.exercises.datastream_java.utils.ExerciseBase._
-import org.apache.flink.api.common.state.{ValueState, ValueStateDescriptor}
+import org.apache.flink.api.common.state.{MapState, MapStateDescriptor, ValueState, ValueStateDescriptor}
 import org.apache.flink.api.java.utils.ParameterTool
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.TimeCharacteristic
@@ -66,22 +66,77 @@ object RidesAndFaresExercise {
 
     val processed = rides
       .connect(fares)
-      .flatMap(new EnrichmentFunction)
+      .flatMap(new EnrichmentFunction2)
 
     printOrTest(processed)
 
     env.execute("Join Rides with Fares (scala RichCoFlatMap)")
   }
 
-  class EnrichmentFunction extends RichCoFlatMapFunction[TaxiRide, TaxiFare, (TaxiRide, TaxiFare)] {
+  // ID-2-Fare
+//  class EnrichmentFunction extends RichCoFlatMapFunction[TaxiRide, TaxiFare, (TaxiRide, TaxiFare)] {
+//
+//    var fares: MapState[Long, TaxiFare] = _
+//    val mapDescriptor = new MapStateDescriptor[Long, TaxiFare](
+//      "id-to-fare",
+//      createTypeInformation[Long],
+//      createTypeInformation[TaxiFare])
+//
+//    override def open(parameters: Configuration): Unit = {
+//      fares = getRuntimeContext.getMapState(mapDescriptor)
+//    }
+//
+//    override def flatMap1(ride: TaxiRide, out: Collector[(TaxiRide, TaxiFare)]): Unit = {
+//      out.collect(ride, fares.get(ride.rideId))
+//    }
+//
+//    override def flatMap2(fare: TaxiFare, out: Collector[(TaxiRide, TaxiFare)]): Unit = {
+//      fares.put(fare.rideId, fare)
+//    }
+//
+//  }
+
+  class EnrichmentFunction2 extends RichCoFlatMapFunction[TaxiRide, TaxiFare, (TaxiRide, TaxiFare)] {
+
+    var fareState: ValueState[TaxiFare] = _
+    var rideState: ValueState[TaxiRide] = _
+    val fareDescriptor = new ValueStateDescriptor[TaxiFare]("TaxiFare", createTypeInformation[TaxiFare])
+    val rideDescriptor = new ValueStateDescriptor[TaxiRide]("TaxiRide", createTypeInformation[TaxiRide])
+
+    override def open(parameters: Configuration): Unit = {
+      fareState = getRuntimeContext.getState(fareDescriptor)
+      rideState = getRuntimeContext.getState(rideDescriptor)
+    }
 
     override def flatMap1(ride: TaxiRide, out: Collector[(TaxiRide, TaxiFare)]): Unit = {
-      throw new MissingSolutionException();
+      if (fareState.value() == null) rideState.update(ride)
+      else out.collect(ride, fareState.value())
     }
 
     override def flatMap2(fare: TaxiFare, out: Collector[(TaxiRide, TaxiFare)]): Unit = {
+      if (rideState.value() == null) fareState.update(fare)
+      else out.collect((rideState.value(), fare))
     }
 
   }
+
+//  class EnrichmentFunction3 extends RichCoFlatMapFunction[TaxiRide, TaxiFare, (TaxiRide, TaxiFare)] {
+//
+//    var fareState: ValueState[TaxiFare] = _
+//    val fareDescriptor = new ValueStateDescriptor[TaxiFare]("TaxiFare", createTypeInformation[TaxiFare])
+//
+//    override def open(parameters: Configuration): Unit = {
+//      fareState = getRuntimeContext.getState(fareDescriptor)
+//    }
+//
+//    override def flatMap1(ride: TaxiRide, out: Collector[(TaxiRide, TaxiFare)]): Unit = {
+//      out.collect(ride, fareState.value())
+//    }
+//
+//    override def flatMap2(fare: TaxiFare, out: Collector[(TaxiRide, TaxiFare)]): Unit = {
+//      if (fareState.value() == null) fareState.update(fare)
+//    }
+//
+//  }
 
 }
