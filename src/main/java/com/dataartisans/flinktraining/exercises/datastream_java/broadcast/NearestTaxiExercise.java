@@ -63,136 +63,136 @@ import java.util.Random;
  */
 public class NearestTaxiExercise extends ExerciseBase {
 
-	private static class Query {
+    private static class Query {
 
-		private final long queryId;
-		private final float longitude;
-		private final float latitude;
+        private final long queryId;
+        private final float longitude;
+        private final float latitude;
 
-		Query(final float longitude, final float latitude) {
-			this.queryId = new Random().nextLong();
-			this.longitude = longitude;
-			this.latitude = latitude;
-		}
+        Query(final float longitude, final float latitude) {
+            this.queryId = new Random().nextLong();
+            this.longitude = longitude;
+            this.latitude = latitude;
+        }
 
-		Long getQueryId() {
-			return queryId;
-		}
+        Long getQueryId() {
+            return queryId;
+        }
 
-		public float getLongitude() {
-			return longitude;
-		}
+        public float getLongitude() {
+            return longitude;
+        }
 
-		public float getLatitude() {
-			return latitude;
-		}
+        public float getLatitude() {
+            return latitude;
+        }
 
-		@Override
-		public String toString() {
-			return "Query{" +
-					"id=" + queryId +
-					", longitude=" + longitude +
-					", latitude=" + latitude +
-					'}';
-		}
-	}
+        @Override
+        public String toString() {
+            return "Query{" +
+                    "id=" + queryId +
+                    ", longitude=" + longitude +
+                    ", latitude=" + latitude +
+                    '}';
+        }
+    }
 
-	final static MapStateDescriptor queryDescriptor = new MapStateDescriptor<>(
-			"queries",
-			BasicTypeInfo.LONG_TYPE_INFO,
-			TypeInformation.of(Query.class));
+    final static MapStateDescriptor queryDescriptor = new MapStateDescriptor<>(
+            "queries",
+            BasicTypeInfo.LONG_TYPE_INFO,
+            TypeInformation.of(Query.class));
 
-	public static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws Exception {
 
-		ParameterTool params = ParameterTool.fromArgs(args);
-		final String input = params.get("input", ExerciseBase.pathToRideData);
+        ParameterTool params = ParameterTool.fromArgs(args);
+        final String input = params.get("input", ExerciseBase.pathToRideData);
 
-		final int maxEventDelay = 60;       	// events are out of order by at most 60 seconds
-		final int servingSpeedFactor = 600; 	// 10 minutes worth of events are served every second
+        final int maxEventDelay = 60;       	// events are out of order by at most 60 seconds
+        final int servingSpeedFactor = 600; 	// 10 minutes worth of events are served every second
 
-		// set up streaming execution environment
-		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-		env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
-		env.setParallelism(ExerciseBase.parallelism);
+        // set up streaming execution environment
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
+        env.setParallelism(ExerciseBase.parallelism);
 
-		DataStream<TaxiRide> rides = env.addSource(rideSourceOrTest(new TaxiRideSource(input, maxEventDelay, servingSpeedFactor)));
+        DataStream<TaxiRide> rides = env.addSource(rideSourceOrTest(new TaxiRideSource(input, maxEventDelay, servingSpeedFactor)));
 
-		// add a socket source
-		BroadcastStream<Query> queryStream = env.socketTextStream("localhost", 9999)
-				.map(new MapFunction<String, Query>() {
-					@Override
-					public Query map(String msg) throws Exception {
-						String[] parts = msg.split(",\\s*");
-						return new Query(
-								Float.valueOf(parts[0]),	// longitude
-								Float.valueOf(parts[1]));	// latitude
-					}
-				})
-				.broadcast(queryDescriptor);
+        // add a socket source
+        BroadcastStream<Query> queryStream = env.socketTextStream("localhost", 9999)
+                .map(new MapFunction<String, Query>() {
+                    @Override
+                    public Query map(String msg) throws Exception {
+                        String[] parts = msg.split(",\\s*");
+                        return new Query(
+                                Float.valueOf(parts[0]),	// longitude
+                                Float.valueOf(parts[1]));	// latitude
+                    }
+                })
+                .broadcast(queryDescriptor);
 
-		DataStream<Tuple3<Long, Long, Float>> reports = rides
-				.keyBy((TaxiRide ride) -> ride.taxiId)
-				.connect(queryStream)
-				.process(new QueryFunction());
+        DataStream<Tuple3<Long, Long, Float>> reports = rides
+                .keyBy((TaxiRide ride) -> ride.taxiId)
+                .connect(queryStream)
+                .process(new QueryFunction());
 
-		DataStream<Tuple3<Long, Long, Float>> nearest = reports
-				// key by the queryId
-				.keyBy(new KeySelector<Tuple3<Long, Long, Float>, Long>() {
-					@Override
-					public Long getKey(Tuple3<Long, Long, Float> value) throws Exception {
-						return value.f0;
-					}
-				})
-				.process(new ClosestTaxi());
+        DataStream<Tuple3<Long, Long, Float>> nearest = reports
+                // key by the queryId
+                .keyBy(new KeySelector<Tuple3<Long, Long, Float>, Long>() {
+                    @Override
+                    public Long getKey(Tuple3<Long, Long, Float> value) throws Exception {
+                        return value.f0;
+                    }
+                })
+                .process(new ClosestTaxi());
 
-		printOrTest(nearest);
+        printOrTest(nearest);
 
-		env.execute("Nearest Available Taxi");
-	}
+        env.execute("Nearest Available Taxi");
+    }
 
-	// Only pass thru values that are new minima -- remove duplicates.
-	public static class ClosestTaxi extends KeyedProcessFunction<Long, Tuple3<Long, Long, Float>, Tuple3<Long, Long, Float>> {
-		// store (taxiId, distance), keyed by queryId
-		private transient ValueState<Tuple2<Long, Float>> closest;
+    // Only pass thru values that are new minima -- remove duplicates.
+    public static class ClosestTaxi extends KeyedProcessFunction<Long, Tuple3<Long, Long, Float>, Tuple3<Long, Long, Float>> {
+        // store (taxiId, distance), keyed by queryId
+        private transient ValueState<Tuple2<Long, Float>> closest;
 
-		@Override
-		public void open(Configuration parameters) throws Exception {
-			ValueStateDescriptor<Tuple2<Long, Float>> descriptor =
-					new ValueStateDescriptor<Tuple2<Long, Float>>(
-							// state name
-							"report",
-							// type information of state
-							TypeInformation.of(new TypeHint<Tuple2<Long, Float>>() {}));
-			closest = getRuntimeContext().getState(descriptor);
-		}
+        @Override
+        public void open(Configuration parameters) throws Exception {
+            ValueStateDescriptor<Tuple2<Long, Float>> descriptor =
+                    new ValueStateDescriptor<Tuple2<Long, Float>>(
+                            // state name
+                            "report",
+                            // type information of state
+                            TypeInformation.of(new TypeHint<Tuple2<Long, Float>>() {}));
+            closest = getRuntimeContext().getState(descriptor);
+        }
 
-		@Override
-		// in and out tuples: (queryId, taxiId, distance)
-		public void processElement(Tuple3<Long, Long, Float> report, Context ctx, Collector<Tuple3<Long, Long, Float>> out) throws Exception {
-			if (closest.value() == null || report.f2 < closest.value().f1) {
-				closest.update(new Tuple2<>(report.f1, report.f2));
-				out.collect(report);
-			}
-		}
-	}
+        @Override
+        // in and out tuples: (queryId, taxiId, distance)
+        public void processElement(Tuple3<Long, Long, Float> report, Context ctx, Collector<Tuple3<Long, Long, Float>> out) throws Exception {
+            if (closest.value() == null || report.f2 < closest.value().f1) {
+                closest.update(new Tuple2<>(report.f1, report.f2));
+                out.collect(report);
+            }
+        }
+    }
 
-	// Note that in order to have consistent results after a restore from a checkpoint, the
-	// behavior of this method must be deterministic, and NOT depend on characterisitcs of an
-	// individual sub-task.
-	public static class QueryFunction extends KeyedBroadcastProcessFunction<Long, TaxiRide, Query, Tuple3<Long, Long, Float>> {
+    // Note that in order to have consistent results after a restore from a checkpoint, the
+    // behavior of this method must be deterministic, and NOT depend on characterisitcs of an
+    // individual sub-task.
+    public static class QueryFunction extends KeyedBroadcastProcessFunction<Long, TaxiRide, Query, Tuple3<Long, Long, Float>> {
 
-		@Override
-		public void processBroadcastElement(Query query, Context ctx, Collector<Tuple3<Long, Long, Float>> out) throws Exception {
-			System.out.println("new query " + query);
-			ctx.getBroadcastState(queryDescriptor).put(query.getQueryId(), query);
-		}
+        @Override
+        public void processBroadcastElement(Query query, Context ctx, Collector<Tuple3<Long, Long, Float>> out) throws Exception {
+            System.out.println("new query " + query);
+            ctx.getBroadcastState(queryDescriptor).put(query.getQueryId(), query);
+        }
 
-		@Override
-		// Output (queryId, taxiId, euclidean distance) for every query, if the taxi ride is now ending.
-		public void processElement(TaxiRide ride, ReadOnlyContext ctx, Collector<Tuple3<Long, Long, Float>> out) throws Exception {
-			if (!ride.isStart) {
-				throw new MissingSolutionException();
-			}
-		}
-	}
+        @Override
+        // Output (queryId, taxiId, euclidean distance) for every query, if the taxi ride is now ending.
+        public void processElement(TaxiRide ride, ReadOnlyContext ctx, Collector<Tuple3<Long, Long, Float>> out) throws Exception {
+            if (!ride.isStart) {
+                throw new MissingSolutionException();
+            }
+        }
+    }
 }
